@@ -1,130 +1,106 @@
 import React from 'react';
 import Header from './Header';
-import Inventory from './Inventory';
-import Order from './Order';
-import Fish from './Fish';
-import sampleFishes from '../sample-fishes';
 import base from '../base';
+import sampleMessages from '../sample-chat';
+import Message from './Message';
+import MessageUser from './MessageUser';
+import Configuration from './Configuration';
+import ScrollableFeed from 'react-scrollable-feed'
 
 class App extends React.Component {
 
     state = {
-        fishes: {},
-        order: {}
+        username: localStorage.getItem('username'),
+        messages: {}
     };
-    addFish = (fish) => {
-        //1. Take a copy of the existing state -
-        const fishes = { ...this.state.fishes }; //use of SPREAD
 
-        //2. add new fish with unique key
-        fishes[`fish${Date.now()}`] = fish;
-        //3. Set the new fishes object to state
+    addMessage = (message) => {
+        const messages = { ...this.state.messages }; //use of SPREAD
+        //2. add new message with unique key
+        messages[`message${Date.now()}`] = message;
+        //3. Set the new messages object to state
+        console.log(messages);
         this.setState({
-            fishes: fishes
-        });
-    };
-    addToOrder = (key) => {
-        const order = { ...this.state.order };
-        //either add to the order or update the number in our order
-        order[key] = order[key] + 1 || 1;
-        this.setState({
-            order: order
+            messages: messages
         });
     };
 
-    loadSampleFishes = () => {
-        this.setState({
-            fishes: sampleFishes
-        });
-    };
-
-    componentDidMount() {
-        const { params } = this.props.match;
-        console.log("dintre");
-        this.ref = base.syncState(`${params.storeId}/fishes`, {
-            context: this,
-            state: 'fishes'
-        });
-    }
     componentWillUnmount() {
         base.removeBinding(this.ref);
     }
 
-    updateFish = (key, updatedFish) => {
-        //take a copy of the current state
-        const fishes = { ...this.state.fishes };
-        //update that state
-        fishes[key] = updatedFish;
-        //set that to be the new state
+    loadSampleMessages = () => {
+
         this.setState({
-            fishes: fishes
+            messages: sampleMessages
         });
     };
 
-    deleteFish = (key) => {
-        //take a copy of current state
-        const fishes = { ...this.state.fishes };
-        //remove an object from state.
-        fishes[key] = null;
-        //update state
-        this.setState({
-            fishes: fishes
-        });
-    };
-
-    removeFromOrder = (key) => {
-        const order = { ...this.state.order };
-        delete order[key];
-        this.setState({
-            order: order
-        });
-    };
+    componentWillUnmount() {
+        base.removeBinding(this.ref);
+    }
 
     componentDidUpdate() {
-        localStorage.setItem(this.props.match.params.storeId, JSON.stringify(this.state.order));
+
+        localStorage.setItem(this.props.match.params.chatId, JSON.stringify(this.state.chat));
+        console.log(this.props.match.params.chatId);
+        console.log(localStorage.getItem('username'));
     };
 
     componentDidMount() {
+
         const { params } = this.props.match;
-        this.ref = base.syncState(`${params.storeId}/fishes`, {
+
+        console.log(this.props.match);
+        this.ref = base.syncState(`1/${params.chatId}`, {
             context: this,
-            state: 'fishes'
+            state: 'messages'
         });
 
-        const localStorageRef = localStorage.getItem(params.storeId);
-        if (localStorageRef) {
-            this.setState({ order: JSON.parse(localStorageRef) });
-        }
+    };
+
+    changeName = (name) => {
+        localStorage.setItem('username', name);
+        this.setState({
+            username: name
+        });
     };
 
     render() {
+
+
         return (
-            <div className="catch-of-the-day">
-                <div className="menu">
-                    <Header tagline="Seafood Market" />
-                    <ul className="fishes">
-                        {Object.keys(this.state.fishes).map(key =>
-                            <Fish
-                                key={key}
-                                index={key}
-                                details={this.state.fishes[key]}
-                                addToOrder={this.addToOrder}
-                            />)
-                        }
-                    </ul>
+            <div className="wrapper">
+                <div className="head">
+                    <Header
+                        username={this.state.username}
+                    />
                 </div>
-                <Order
-                    fishes={this.state.fishes}
-                    order={this.state.order}
-                    removeFromOrder={this.removeFromOrder}
-                />
-                <Inventory
-                    addFish={this.addFish}
-                    loadSampleFishes={this.loadSampleFishes}
-                    updateFish={this.updateFish}
-                    deleteFish={this.deleteFish}
-                    fishes={this.state.fishes}
-                />
+                <section className="configuration">
+                    <Configuration
+                        username={this.state.username}
+                        changeName={this.changeName}
+                    />
+                </section>
+                <section className="chatbox">
+                    <div className="chatScroll">
+                    <ScrollableFeed >
+                        <ul>
+                            {Object.keys(this.state.messages).map(key =>
+                                <Message
+                                    key={key}
+                                    index={key}
+                                    details={this.state.messages[key]}
+                                />)
+                            }
+                        </ul>
+                    </ScrollableFeed>
+                    </div>
+                    <MessageUser
+                        addMessage={this.addMessage}
+                        loadSampleMessages={this.loadSampleMessages}
+                    />
+                </section>
             </div>
         );
     }
